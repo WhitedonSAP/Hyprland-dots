@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 ## Copyright (C) 2020-2026 Aditya Shakya <adi1090x@gmail.com>
 ##
-## Script To Apply Themes
+## Script To Apply Themes -----------------------------------
 
-## Theme ------------------------------------
+## Directories ----------------------------------------------
 DIR="$HOME/.config/hyprcat"
-
-## Directories ------------------------------
 PATH_ALAC="$DIR/alacritty"
 PATH_FOOT="$DIR/foot"
 PATH_KITY="$DIR/kitty"
@@ -17,96 +16,175 @@ PATH_WAYB="$DIR/waybar"
 PATH_WLOG="$DIR/wlogout"
 PATH_WOFI="$DIR/wofi"
 
-## Source Theme File ------------------------
+## Helpers --------------------------------------------------
+run_bg() {
+	setsid "$@" >/dev/null 2>&1 &
+}
+
+safe_restart() {
+	local proc="$1"; shift
+
+	if pgrep -x "$proc" >/dev/null; then
+		pkill -TERM -x "$proc"
+		while pgrep -x "$proc" >/dev/null; do
+			sleep 0.1
+		done
+	fi
+
+	"$@" &
+}
+
+reload_or_start() {
+	local proc="$1"
+	local reload_cmd="$2"
+	local start_cmd="$3"
+
+	if pgrep -x "$proc" >/dev/null; then
+		eval "$reload_cmd"
+	else
+		eval "$start_cmd &"
+	fi
+}
+
+write_if_changed() {
+	local file="$1"
+	local tmp
+	tmp=$(mktemp)
+
+	cat > "$tmp"
+
+	if ! cmp -s "$tmp" "$file" 2>/dev/null; then
+		mv "$tmp" "$file"
+	else
+		rm "$tmp"
+	fi
+}
+
+notify() {
+	notify-send \
+		-h string:x-canonical-private-synchronous:sys-notify-theme \
+		-u normal \
+		-i "${PATH_MAKO}/icons/palette.png" \
+		"$1"
+}
+
+## Theme Sources --------------------------------------------
 CURRENT_THEME="$DIR/theme/current.bash"
 DEFAULT_THEME="$DIR/theme/default.bash"
 LIGHT_THEME="$DIR/theme/light.bash"
 PYWAL_THEME="$HOME/.cache/wal/colors.sh"
 
-## Check if current file exist
-if [[ ! -e "$CURRENT_THEME" ]]; then
-	touch "$CURRENT_THEME"
-fi
+apply_palette_math() {
+	altbackground="$(pastel color "$background" | pastel lighten 0.10 | pastel format hex)"
+	altforeground="$(pastel color "$foreground" | pastel darken 0.30 | pastel format hex)"
+	mapfile -t modbackground < <(pastel gradient -n 3 "$background" "$altbackground" | pastel format hex)
+}
 
-## Default Theme
+# Default Theme
 source_default() {
-	cat ${DEFAULT_THEME} > ${CURRENT_THEME}
-	source ${CURRENT_THEME}
-	altbackground="`pastel color $background | pastel lighten 0.10 | pastel format hex`"
-	altforeground="`pastel color $foreground | pastel darken 0.30 | pastel format hex`"
-	modbackground=(`pastel gradient -n 3 $background $altbackground | pastel format hex`)
+	cp "$DEFAULT_THEME" "$CURRENT_THEME"
+	source "$CURRENT_THEME"
+	apply_palette_math
 	accent="$color4"
-	notify-send -h string:x-canonical-private-synchronous:sys-notify-dtheme -u normal -i ${PATH_MAKO}/icons/palette.png "Applying Default Theme..."
+	notify "Applying Default Theme…"
 }
 
-## Light Theme
+# Light Theme
 source_light() {
-	cat ${LIGHT_THEME} > ${CURRENT_THEME}
-	source ${CURRENT_THEME}
-	altbackground="`pastel color $background | pastel darken 0.12 | pastel format hex`"
-	altforeground="`pastel color $foreground | pastel lighten 0.30 | pastel format hex`"
-	modbackground=(`pastel gradient -n 3 $background $altbackground | pastel format hex`)
+	cp "$LIGHT_THEME" "$CURRENT_THEME"
+	source "$CURRENT_THEME"
+	altbackground="$(pastel color "$background" | pastel darken 0.12 | pastel format hex)"
+	altforeground="$(pastel color "$foreground" | pastel lighten 0.30 | pastel format hex)"
+	mapfile -t modbackground < <(pastel gradient -n 3 "$background" "$altbackground" | pastel format hex)
 	accent="$color4"
-	notify-send -h string:x-canonical-private-synchronous:sys-notify-dtheme -u normal -i ${PATH_MAKO}/icons/palette.png "Applying Light Theme..."
+	notify "Applying Light Theme…"
 }
 
-## Random Theme
+# Random Theme
 source_pywal() {
 	# Set you wallpaper directory here.
-	WALLDIR="`xdg-user-dir PICTURES`/wallpapers"
+	WALLDIR="$(xdg-user-dir PICTURES)/wallpapers"
 
-	# Check for wallpapers
-	check_wallpaper() {
-		if [[ -d "$WALLDIR" ]]; then
-			WFILES="`ls --format=single-column $WALLDIR | wc -l`"
-			if [[ "$WFILES" == 0 ]]; then
-				notify-send -h string:x-canonical-private-synchronous:sys-notify-noimg -u low -i ${PATH_MAKO}/icons/picture.png "There are no wallpapers in : $WALLDIR"
-				exit
-			fi
-		else
-			mkdir -p "$WALLDIR"
-			notify-send -h string:x-canonical-private-synchronous:sys-notify-noimg -u low -i ${PATH_MAKO}/icons/picture.png "Put some wallpapers in : $WALLDIR"
-			exit
-		fi
-	}
+	# Create directory if missing
+	if [[ ! -d "$WALLDIR" ]]; then
+		mkdir -p "$WALLDIR"
 
-	# Run `pywal` to generate colors
-	generate_colors() {	
-		check_wallpaper
-		if [[ `which wal` ]]; then
-			notify-send -t 50000 -h string:x-canonical-private-synchronous:sys-notify-runpywal -i ${PATH_MAKO}/icons/timer.png "Generating Colorscheme. Please wait..."
-			wal -q -n -s -t -e -i "$WALLDIR"
-			if [[ "$?" != 0 ]]; then
-				notify-send -h string:x-canonical-private-synchronous:sys-notify-runpywal -u normal -i ${PATH_MAKO}/icons/palette.png "Failed to generate colorscheme."
-				exit
-			fi
-		else
-			notify-send -h string:x-canonical-private-synchronous:sys-notify-runpywal -u normal -i ${PATH_MAKO}/icons/palette.png "'pywal' is not installed."
-			exit
-		fi
-	}
+		notify-send \
+			-h string:x-canonical-private-synchronous:sys-notify-noimg \
+			-u low \
+			-i "${PATH_MAKO}/icons/picture.png" \
+			"Put some wallpapers in: $WALLDIR"
 
-	generate_colors
-	cat ${PYWAL_THEME} > ${CURRENT_THEME}
-	source ${CURRENT_THEME}
-	altbackground="`pastel color $background | pastel lighten 0.10 | pastel format hex`"
-	altforeground="`pastel color $foreground | pastel darken 0.30 | pastel format hex`"
-	modbackground=(`pastel gradient -n 3 $background $altbackground | pastel format hex`)
+		exit 1
+	fi
+
+	# Check if wallpapers exist
+	shopt -s nullglob
+	mapfile -t WALLPAPERS < <(find "$WALLDIR" -type f \( \
+		-iname "*.jpg" -o \
+		-iname "*.jpeg" -o \
+		-iname "*.png" -o \
+		-iname "*.webp" -o \
+		-iname "*.bmp" \))
+
+	if (( ${#WALLPAPERS[@]} == 0 )); then
+		notify-send \
+			-h string:x-canonical-private-synchronous:sys-notify-noimg \
+			-u low \
+			-i "${PATH_MAKO}/icons/picture.png" \
+			"There are no wallpapers in: $WALLDIR"
+
+		exit 1
+	fi
+
+	# Check pywal
+	if ! command -v wal >/dev/null 2>&1; then
+		notify-send \
+			-h string:x-canonical-private-synchronous:sys-notify-runpywal \
+			-u normal \
+			-i "${PATH_MAKO}/icons/palette.png" \
+			"'pywal' is not installed."
+
+		exit 1
+	fi
+
+	# Generate Colors
+	notify-send \
+		-t 50000 \
+		-h string:x-canonical-private-synchronous:sys-notify-runpywal \
+		-i "${PATH_MAKO}/icons/timer.png" \
+		"Generating colorscheme. Please wait..."
+
+	if ! wal -q -n -s -t -e -i "$WALLDIR"; then
+		notify-send \
+			-h string:x-canonical-private-synchronous:sys-notify-runpywal \
+			-u normal \
+			-i "${PATH_MAKO}/icons/palette.png" \
+			"Failed to generate colorscheme."
+		exit 1
+	else
+		makoctl dismiss	
+	fi
+
+	# Load Generated Theme
+	cp "$PYWAL_THEME" "$CURRENT_THEME"
+	sed -i '/# FZF colors/Q' "$CURRENT_THEME"
+	source "$CURRENT_THEME"
+	apply_palette_math
 	accent="$color4"
 }
 
-## Wallpaper ---------------------------------
-apply_wallpaper() {
-	sed -i -e "s|\$wallpaper =.*|\$wallpaper = $wallpaper|g" ${DIR}/hyprpaper.conf
+## Apply Components -----------------------------------------
 
-	hyprctl hyprpaper preload "$wallpaper"
+apply_wallpaper() {
+	sed -i "s|\$wallpaper =.*|\$wallpaper = $wallpaper|g" \
+		"$DIR/hyprpaper.conf"
+
 	hyprctl hyprpaper wallpaper ",$wallpaper"
 }
 
-## Alacritty ---------------------------------
 apply_alacritty() {
-	# alacritty : colors
-	cat > ${PATH_ALAC}/colors.toml <<- _EOF_
+	write_if_changed "$PATH_ALAC/colors.toml" <<- EOF
 		## Colors configuration
 		[colors.primary]
 		background = "${background}"
@@ -131,15 +209,13 @@ apply_alacritty() {
 		magenta = "${color13}"
 		cyan    = "${color14}"
 		white   = "${color15}"
-	_EOF_
+	EOF
 }
 
-## Foot --------------------------------------
 apply_foot() {
-	# foot : colors
-	cat > ${PATH_FOOT}/colors.ini <<- _EOF_
+	write_if_changed "$PATH_FOOT/colors.ini" <<- EOF
 		## Colors configuration
-		[colors]
+		[colors-dark]
 		alpha=1.0
 		foreground=${foreground:1}
 		background=${background:1}
@@ -163,13 +239,11 @@ apply_foot() {
 		bright5=${color13:1}   # bright magenta
 		bright6=${color14:1}   # bright cyan
 		bright7=${color15:1}   # bright white
-	_EOF_
+	EOF
 }
 
-## Kitty ---------------------------------
 apply_kitty() {
-	# kitty : colors
-	cat > ${PATH_KITY}/colors.conf <<- _EOF_
+	write_if_changed "$PATH_KITY/colors.conf" <<- EOF
 		## Colors configuration
 		background ${background}
 		foreground ${foreground}
@@ -193,17 +267,15 @@ apply_kitty() {
 		color14 ${color14}
 		color7 ${color7}
 		color15 ${color15}
-	_EOF_
+	EOF
 
-	# reload kitty config
-	kill -SIGUSR1 $(pidof kitty)
+	pkill -USR1 kitty 2>/dev/null || true
 }
 
-## Mako --------------------------------------
 apply_mako() {
-	# mako : config
-	sed -i '/# Mako_Colors/Q' ${PATH_MAKO}/config
-	cat >> ${PATH_MAKO}/config <<- _EOF_
+	sed -i '/# Mako_Colors/Q' "$PATH_MAKO/config"
+
+	cat >> "$PATH_MAKO/config" <<- EOF
 		# Mako_Colors
 		background-color=${background}
 		text-color=${foreground}
@@ -222,15 +294,16 @@ apply_mako() {
 		border-color=${color1}
 		text-color=${color1}
 		default-timeout=0
-	_EOF_
+	EOF
 
-	pkill mako && bash ${DIR}/scripts/notifications &
+	reload_or_start \
+		mako \
+		"makoctl reload" \
+		"bash $DIR/scripts/notifications"
 }
 
-## Rofi --------------------------------------
 apply_rofi() {
-	# rofi : colors
-	cat > ${PATH_ROFI}/shared/colors.rasi <<- EOF
+	write_if_changed "$PATH_ROFI/shared/colors.rasi" <<- EOF
 		* {
 		    background:     ${background};
 		    background-alt: ${modbackground[1]};
@@ -242,10 +315,8 @@ apply_rofi() {
 	EOF
 }
 
-## Waybar ------------------------------------
 apply_waybar() {
-	# waybar : colors
-	cat > ${PATH_WAYB}/colors.css <<- EOF
+	write_if_changed "$PATH_WAYB/colors.css" <<- EOF
 		/** ********** Colors ********** **/
 		@define-color background      ${background};
 		@define-color background-alt1 ${modbackground[1]};
@@ -262,13 +333,14 @@ apply_waybar() {
 		@define-color white           ${color7};
 	EOF
 
-	pkill waybar && bash ${DIR}/scripts/statusbar &
+	reload_or_start \
+		waybar \
+		"pkill -USR2 waybar" \
+		"bash $DIR/scripts/statusbar"
 }
 
-## Wlogout -----------------------------------
 apply_wlogout() {
-	# wlogout : colors
-	cat > ${PATH_WLOG}/colors.css <<- EOF
+	write_if_changed "$PATH_WLOG/colors.css" <<- EOF
 		/** ********** Colors ********** **/
 		@define-color background      ${background};
 		@define-color background-alt1 ${modbackground[1]};
@@ -286,10 +358,9 @@ apply_wlogout() {
 	EOF
 }
 
-## Wofi --------------------------------------
 apply_wofi() {
 	# wofi : colors	
-	sed -i ${PATH_WOFI}/style.css \
+	sed -i "$PATH_WOFI/style.css" \
 		-e "s/@define-color background .*/@define-color background      ${background};/g" \
 		-e "s/@define-color background-alt1 .*/@define-color background-alt1 ${modbackground[1]};/g" \
 		-e "s/@define-color background-alt2 .*/@define-color background-alt2 ${modbackground[2]};/g" \
@@ -305,24 +376,22 @@ apply_wofi() {
 		-e "s/@define-color white .*/@define-color white           ${color7};/g"
 }
 
-## GTK Theme ---------------------------------
 apply_gtk() {
-	sed -i "$DIR"/scripts/gtkthemes \
+	sed -i "$DIR/scripts/gtkthemes" \
 		-e "s|THEME=.*|THEME='$gtk_theme'|g" \
 		-e "s|ICONS=.*|ICONS='$gtk_icons'|g" \
 		-e "s|FONT=.*|FONT='$gtk_font'|g" \
 		-e "s|CURSOR=.*|CURSOR='$cursor_theme'|g"
-		
-	bash ${DIR}/scripts/gtkthemes &
+
+	run_bg bash "$DIR/scripts/gtkthemes"
 }
 
-# Geany -------------------------------------
 apply_geany() {
-	sed -i "$HOME"/.config/geany/geany.conf \
-		-e "s/color_scheme=.*/color_scheme=$geany_colors/g"
+	sed -i \
+		"s/color_scheme=.*/color_scheme=$geany_colors/g" \
+		"$HOME/.config/geany/geany.conf"
 }
 
-## Hyprlock ----------------------------------
 apply_hyprlock() {
 	# convert colors to rgb format
 	col_bg="`pastel color ${background} | pastel format rgb | sed 's/rgb(\(.*\))/rgba(\1, 1.0)/'`"
@@ -343,10 +412,9 @@ apply_hyprlock() {
 		-e "s|\$label_color_hex =.*|\$label_color_hex = #${foreground}99 |g"
 }
 
-## Hyprland --------------------------------------
 apply_hypr() {
 	# hyprland : theme
-	sed -i "${DIR}/config.d/00-hyprtheme.conf" \
+	sed -i "$DIR/config.d/00-hyprtheme.conf" \
 		-e "s/^\(\$active_border_col_1[[:space:]]*=[[:space:]]*\).*/\10xFF${accent:1}/" \
 		-e "s/^\(\$active_border_col_2[[:space:]]*=[[:space:]]*\).*/\10xFF${color1:1}/" \
 		-e "s/^\(\$inactive_border_col_1[[:space:]]*=[[:space:]]*\).*/\10xFF${modbackground[1]:1}/" \
@@ -359,31 +427,43 @@ apply_hypr() {
 		-e "s/^\(\$groupbar_text_color_inactive[[:space:]]*=[[:space:]]*\).*/\10xFF${foreground:1}/"
 }
 
-## Source Theme Accordingly -----------------
-if [[ "$1" == '--default' ]]; then
-	source_default
-	apply_gtk
-	apply_geany
-elif [[ "$1" == '--light' ]]; then
-	source_light
-	apply_gtk
-	apply_geany
-elif [[ "$1" == '--pywal' ]]; then
-	source_pywal
-else
-	echo "Available Options: --default  --light  --pywal"
-	exit 1
-fi
+## Theme Selection ------------------------------------------
 
-## Execute Script ---------------------------
-apply_wallpaper
-apply_alacritty
-apply_foot
-apply_kitty
+case "${1:-}" in
+	--default)
+		source_default
+		apply_gtk
+		apply_geany
+		;;
+	--light)
+		source_light
+		apply_gtk
+		apply_geany
+		;;
+	--pywal)
+		source_pywal
+		;;
+	*)
+		echo "Options: --default  --light  --pywal"
+		exit 1
+		;;
+esac
+
+## Parallel Apply Phase -------------------------------------
+apply_wallpaper &
+apply_alacritty &
+apply_foot &
+apply_kitty &
+apply_rofi &
+apply_wlogout &
+apply_wofi &
+apply_hyprlock &
+apply_hypr &
+
+wait
+
+# UI reload last (prevents flicker / race)
 apply_mako
-apply_rofi
 apply_waybar
-apply_wlogout
-apply_wofi
-apply_hyprlock
-apply_hypr
+
+exit 0

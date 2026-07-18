@@ -1,33 +1,50 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 ## Copyright (C) 2020-2026 Aditya Shakya <adi1090x@gmail.com>
 ##
 ## Autostart Programs ---------------------------------------
 
-# Kill already running process
-_ps=(waybar mako)
-for _prs in "${_ps[@]}"; do
-	if [[ `pidof ${_prs}` ]]; then
-		killall -9 ${_prs}
+## Helpers
+run() {
+	if ! pgrep -x "$1" >/dev/null 2>&1; then
+		"$@" &
 	fi
-done
+}
 
-# Polkit agent
+run_bg() {
+	("$@" >/dev/null 2>&1 &)
+}
+
+restart() {
+	local proc="$1"
+	shift
+
+	if pgrep -x "$proc" >/dev/null 2>&1; then
+		pkill -TERM -x "$proc"
+		while pgrep -x "$proc" >/dev/null 2>&1; do
+			sleep 0.1
+		done
+	fi
+
+	"$@" >/dev/null 2>&1 &
+}
+
+## Core UI Elements
+restart waybar ~/.config/hypr/scripts/statusbar
+restart mako   ~/.config/hypr/scripts/notifications
+
+## Theming & Wallpaper
+run_bg ~/.config/hypr/scripts/gtkthemes
+
+## Applets & Services
+run nm-applet --indicator
+run mpd
+
+## Polkit
+#run /usr/lib/xfce-polkit/xfce-polkit
 if [[ ! `pidof xfce-polkit` ]]; then
 	/usr/lib/xfce-polkit/xfce-polkit &
 fi
 
-# Apply themes
-~/.config/hypr/scripts/gtkthemes &
-
-# Lauch notification daemon (mako)
-~/.config/hypr/scripts/notifications &
-
-# Lauch statusbar (waybar)
-~/.config/hypr/scripts/statusbar &
-
-# Start network manager applet
-nm-applet --indicator &
-
-# Start mpd
-exec mpd &
+exit 0
