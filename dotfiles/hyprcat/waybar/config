@@ -21,7 +21,8 @@
     "margin-right": 0, 	
     "fixed-center": true, 
     "ipc": true, 		
- 
+    "reload_style_on_change": true, // Reload changes
+
     "modules-left": ["custom/menu", "cpu", "memory", "disk", "idle_inhibitor", "custom/sunset"],
     //"modules-center": ["hyprland/submap", "hyprland/workspaces", "mpd", "tray"],
     "modules-center": ["hyprland/submap", "hyprland/workspaces", "custom/spotify", "tray"],

@@ -32,6 +32,7 @@ gtk_theme='Manhattan'
 gtk_icons='Luv-Folders-Dark'
 gtk_font='Noto Sans 9'
 cursor_theme='Qogirr-Dark'
+gtk_colors='prefer-dark'
 
 # Geany
 geany_colors='manhattan.conf'

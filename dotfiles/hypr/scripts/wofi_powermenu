@@ -9,7 +9,7 @@ CONFIG="$HOME/.config/hypr/wofi/config"
 STYLE="$HOME/.config/hypr/wofi/style.css"
 
 ## Wofi Command
-wofi_command="wofi --show dmenu \
+wofi_command="env -u LD_PRELOAD wofi --show dmenu \
 			--conf ${CONFIG} --style ${STYLE} \
 			--width=300 --height=185 \
 			--cache-file=/dev/null \
@@ -80,7 +80,7 @@ open_menu () {
 		$logout)
 			cdialog
 			if [[ "$?" == 0 ]]; then
-				hyprctl dispatch exit 0
+				hyprctl dispatch "hl.dsp.exit()"
 			else
 				exit
 			fi

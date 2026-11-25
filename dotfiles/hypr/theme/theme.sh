@@ -359,7 +359,6 @@ apply_wlogout() {
 }
 
 apply_wofi() {
-	# wofi : colors	
 	sed -i "$PATH_WOFI/style.css" \
 		-e "s/@define-color background .*/@define-color background      ${background};/g" \
 		-e "s/@define-color background-alt1 .*/@define-color background-alt1 ${modbackground[1]};/g" \
@@ -382,6 +381,10 @@ apply_gtk() {
 		-e "s|ICONS=.*|ICONS='$gtk_icons'|g" \
 		-e "s|FONT=.*|FONT='$gtk_font'|g" \
 		-e "s|CURSOR=.*|CURSOR='$cursor_theme'|g"
+
+	# set color scheme for gnome apps
+	gsettings set org.gnome.desktop.interface color-scheme "'$gtk_colors'"
+	gsettings set org.x.apps.portal color-scheme "'$gtk_colors'"
 
 	run_bg bash "$DIR/scripts/gtkthemes"
 }
@@ -413,18 +416,20 @@ apply_hyprlock() {
 }
 
 apply_hypr() {
-	# hyprland : theme
-	sed -i "$DIR/config.d/00-hyprtheme.conf" \
-		-e "s/^\(\$active_border_col_1[[:space:]]*=[[:space:]]*\).*/\10xFF${accent:1}/" \
-		-e "s/^\(\$active_border_col_2[[:space:]]*=[[:space:]]*\).*/\10xFF${color1:1}/" \
-		-e "s/^\(\$inactive_border_col_1[[:space:]]*=[[:space:]]*\).*/\10xFF${modbackground[1]:1}/" \
-		-e "s/^\(\$inactive_border_col_2[[:space:]]*=[[:space:]]*\).*/\10xFF${modbackground[2]:1}/" \
-		-e "s/^\(\$group_border_active_col[[:space:]]*=[[:space:]]*\).*/\10xFF${accent:1}/" \
-		-e "s/^\(\$group_border_inactive_col[[:space:]]*=[[:space:]]*\).*/\10xFF${modbackground[1]:1}/" \
-		-e "s/^\(\$group_border_locked_active_col[[:space:]]*=[[:space:]]*\).*/\10xFF${color1:1}/" \
-		-e "s/^\(\$group_border_locked_inactive_col[[:space:]]*=[[:space:]]*\).*/\10xFF${modbackground[1]:1}/" \
-		-e "s/^\(\$groupbar_text_color_active[[:space:]]*=[[:space:]]*\).*/\10xFF${background:1}/" \
-		-e "s/^\(\$groupbar_text_color_inactive[[:space:]]*=[[:space:]]*\).*/\10xFF${foreground:1}/"
+	# Update Hyprland theme colors
+	sed -i "$DIR/configs/00-hyprtheme.lua" \
+		-e "s/^\(active_border_col_1[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${accent}FF\"/" \
+		-e "s/^\(active_border_col_2[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${color1}FF\"/" \
+		-e "s/^\(inactive_border_col_1[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${modbackground[1]}FF\"/" \
+		-e "s/^\(inactive_border_col_2[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${modbackground[2]}FF\"/" \
+		-e "s/^\(active_glow_col[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${accent}FF\"/" \
+		-e "s/^\(inactive_glow_col[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${modbackground[1]}FF\"/" \
+		-e "s/^\(group_border_active_col[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${accent}FF\"/" \
+		-e "s/^\(group_border_inactive_col[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${modbackground[1]}FF\"/" \
+		-e "s/^\(group_border_locked_active_col[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${color1}FF\"/" \
+		-e "s/^\(group_border_locked_inactive_col[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${modbackground[1]}FF\"/" \
+		-e "s/^\(groupbar_text_color_active[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${background}FF\"/" \
+		-e "s/^\(groupbar_text_color_inactive[[:space:]]*=[[:space:]]*\)\".*\"/\1\"${foreground}FF\"/"
 }
 
 ## Theme Selection ------------------------------------------

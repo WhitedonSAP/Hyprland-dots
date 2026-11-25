@@ -78,17 +78,19 @@
            
 	// waybar-custom
     "custom/themes": {
-        "format": "",
-        "tooltip": false,
-        "on-click": "$HOME/.config/hyprcat/theme/theme.sh --pywal",
-        "on-click-right": "$HOME/.config/hyprcat/theme/theme.sh --default",
+         "format": "",
+         "tooltip": true,
+         "tooltip-format": "Left click to apply random theme.\n\nRight click to set default theme.",
+         "on-click": "$HOME/.config/hyprcat/theme/theme.sh --pywal",
+         "on-click-right": "$HOME/.config/hyprcat/theme/theme.sh --default",
     },
 
     "custom/lightmode": {
          "exec": "$HOME/.config/hyprcat/waybar/lightmode",
          "interval": 1,
          "format": "{}",
-         "tooltip": false,
+         "tooltip": true,
+         "tooltip-format": "Left click to switch to 'Light Mode'.\n\nRight click to switch back to 'Default Mode'.",
          "on-click": "$HOME/.config/hyprcat/waybar/lightmode --toggle",
     },
 
@@ -96,7 +98,8 @@
          "exec": "$HOME/.config/hyprcat/waybar/sunset",
          "interval": 1,
          "format": "{}",
-         "tooltip": false,
+         "tooltip": true,
+         "tooltip-format": "Enable/Disable blue-light filter",
          "on-click": "$HOME/.config/hyprcat/waybar/sunset --toggle",
          "on-scroll-up": "hyprctl hyprsunset gamma +5",
          "on-scroll-down": "hyprctl hyprsunset gamma -5",
@@ -180,6 +183,7 @@
         "format-disabled": "睊 Disabled",
         "format-alt": " {bandwidthUpBits} |  {bandwidthDownBits}",
         "tooltip-format": " {ifname} via {gwaddr}",
+        "on-click-right": "~/.config/hyprcat/scripts/rofi_network",
     },
 
 	// waybar-pulseaudio
@@ -219,8 +223,6 @@
 	// hyprland-workspaces
     "hyprland/workspaces": {
          "format": "{icon}",
-         "sort-by-number": true,
-         "active-only": false,
          "format-icons": {
              "1": "",
              "2": "",
@@ -234,9 +236,15 @@
              "10": "ﳴ",
              "urgent": "",
              "focused": "",
-             "default": ""
+             "default": "",
+             "special": ""
          },
-         "on-click": "activate",
+         "sort-by": "default",
+         "expand": false,
+         "active-only": false,
+         "show-special": true,
+         "special-visible-only": true,
+         "on-click": "activate",    // buggy due to hyprland lua, will be fixed upstream
     },
 
 	// hyprland-submap
@@ -246,7 +254,7 @@
          "justify": "center",
          "always-on": false,
          "tooltip": false,
-         "on-click": "hyprctl dispatch submap reset"
+         "on-click": "hyprctl dispatch \"hl.dsp.submap('reset')\""
     },
 
 	// waybar-tray

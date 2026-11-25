@@ -32,6 +32,7 @@ gtk_theme='White'
 gtk_icons='Luv-Folders'
 gtk_font='Noto Sans 9'
 cursor_theme='Qogirr-Dark'
+gtk_colors='prefer-light'
 
 # Geany
 geany_colors='slime.conf'

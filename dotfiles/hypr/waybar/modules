@@ -41,7 +41,7 @@
         "format-full": "",
         "format-icons": ["", "", "", "", "", "", "", "", ""],
         "format-time": "{H}h {M}min",
-        "tooltip": true,
+        "tooltip": false,
     },
     "battery#2": {
 		"interval": 60,
@@ -73,7 +73,7 @@
         "format-disabled": "",
         "format-connected": "",
         "format-connected-battery": "",
-        "tooltip": true,
+        "tooltip": false,
         "tooltip-format": "{controller_alias}\t{controller_address}",
         "tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{device_enumerate}",
         "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
@@ -101,6 +101,7 @@
     "clock": {
         "tooltip-format": "<big>{:%B %Y}</big>\n<tt><small>{calendar}</small></tt>",
         "format": "",
+        "tooltip": false,
     },
     "clock#2": {
 		"interval": 60,
@@ -121,17 +122,19 @@
            
 	// waybar-custom
     "custom/themes": {
-        "format": "",
-        "tooltip": false,
-        "on-click": "$HOME/.config/hypr/theme/theme.sh --pywal",
-        "on-click-right": "$HOME/.config/hypr/theme/theme.sh --default",
+         "format": "",
+         "tooltip": true,
+         "tooltip-format": "Left click to apply random theme.\n\nRight click to set default theme.",
+         "on-click": "$HOME/.config/hypr/theme/theme.sh --pywal",
+         "on-click-right": "$HOME/.config/hypr/theme/theme.sh --default",
     },
 
     "custom/lightmode": {
          "exec": "$HOME/.config/hypr/waybar/lightmode",
          "interval": 1,
          "format": "{}",
-         "tooltip": false,
+         "tooltip": true,
+         "tooltip-format": "Left click to switch to 'Light Mode'.\n\nRight click to switch back to 'Default Mode'.",
          "on-click": "$HOME/.config/hypr/waybar/lightmode --toggle",
     },
 
@@ -139,7 +142,8 @@
          "exec": "$HOME/.config/hypr/waybar/sunset",
          "interval": 1,
          "format": "{}",
-         "tooltip": false,
+         "tooltip": true,
+         "tooltip-format": "Enable/Disable blue-light filter",
          "on-click": "$HOME/.config/hypr/waybar/sunset --toggle",
          "on-scroll-up": "hyprctl hyprsunset gamma +5",
          "on-scroll-down": "hyprctl hyprsunset gamma -5",
@@ -247,6 +251,7 @@
         "format-linked": "",
         "format-disconnected": "睊",
         "format-disabled": "睊",
+        "tooltip": false,
         "tooltip-format": " {ifname} via {gwaddr}",
         //"on-click": "[[ ! `pidof nm-connection-editor` ]] && nm-connection-editor || pkill nm-connection-e",
         "on-click": "~/.config/hypr/scripts/rofi_network",
@@ -261,6 +266,7 @@
         "format-disabled": "Disabled",
         "format-alt": " {bandwidthUpBits} |  {bandwidthDownBits}",
         "tooltip-format": " {ifname} via {gwaddr}",
+        "on-click-right": "~/.config/hypr/scripts/rofi_network",
     },
 
 	// waybar-pulseaudio
@@ -282,6 +288,7 @@
             "default": ["", "", ""]
         },
         "scroll-step": 5.0,
+        "tooltip": false,
         "on-click": "pulsemixer --toggle-mute",
         "on-click-right": "pulsemixer --toggle-mute",
         "smooth-scrolling-threshold": 1,
@@ -312,8 +319,6 @@
 	// hyprland-workspaces
     "hyprland/workspaces": {
          "format": "{icon}",
-         "sort-by-number": true,
-         "active-only": false,
          "format-icons": {
              "1": "",
              "2": "",
@@ -327,9 +332,15 @@
              "10": "ﳴ",
              "urgent": "",
              "focused": "",
-             "default": ""
+             "default": "",
+             "special": ""
          },
-         "on-click": "activate",
+         "sort-by": "default",
+         "expand": false,
+         "active-only": false,
+         "show-special": true,
+         "special-visible-only": true,
+         "on-click": "activate",    // buggy due to hyprland lua, will be fixed upstream
     },
 
 	// hyprland-submap
@@ -339,7 +350,7 @@
          "justify": "center",
          "always-on": false,
          "tooltip": false,
-         "on-click": "hyprctl dispatch submap reset"
+         "on-click": "hyprctl dispatch \"hl.dsp.submap('reset')\""
     },
 
 	// waybar-tray

@@ -8,14 +8,24 @@
 DIR="$HOME/.config/hypr"
 CONFIG="$DIR/kitty/kitty.conf"
 
+# Virtualbox workarounds
+cmd=(kitty)
+if [[ "$(systemd-detect-virt)" == "oracle" ]]; then
+    cmd=(env LIBGL_ALWAYS_SOFTWARE=1 kitty)
+fi
+
 if [[ "$1" == '-f' ]]; then
-	kitty --class 'kitty-float' --config "$CONFIG"
+	"${cmd[@]}" \
+		--class 'kitty-float' \
+		--config "$CONFIG"
 elif [[ "$1" == '-F' ]]; then
-	kitty --class 'kitty-fullscreen' --config "$CONFIG" \
-		  --start-as fullscreen \
-		  --override 'window_padding_width=30' \
-		  --override 'font_size=14' \
-		  --override 'background_opacity=0.95'
+	"${cmd[@]}" \
+		--class 'kitty-fullscreen' \
+		--config "$CONFIG" \
+		--start-as fullscreen \
+		--override 'window_padding_width=30' \
+		--override 'font_size=14' \
+		--override 'background_opacity=0.95'
 else
-	kitty --config "$CONFIG" ${@}
+	"${cmd[@]}" --config "$CONFIG" ${@}
 fi
